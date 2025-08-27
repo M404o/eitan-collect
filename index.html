@@ -414,23 +414,38 @@
         }
 
         .problem-area {
-            background: rgba(0, 0, 0, 0.3);
+            background: white;
             border-radius: 15px;
             padding: 25px;
-            margin-bottom: 25px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            margin-bottom: 30px;
+            border: 3px solid #333;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            position: relative;
         }
 
         .problem-text {
-            font-size: 24px;
+            font-size: 18px;
             font-weight: bold;
-            color: white;
-            margin-bottom: 10px;
+            color: #333;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .enemy-word {
+            font-size: 42px;
+            font-weight: 900;
+            color: #e74c3c;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            margin: 20px 0;
+            text-align: center;
+            letter-spacing: 3px;
+            animation: wordThreat 3s ease-in-out infinite;
         }
 
         .problem-hint {
-            font-size: 14px;
-            color: #bdc3c7;
+            font-size: 16px;
+            color: #666;
+            text-align: center;
         }
 
         .game-footer {
@@ -441,49 +456,56 @@
         }
 
         .choices-container {
-            max-width: 800px;
+            max-width: 600px;
             margin: 0 auto;
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 15px;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            gap: 12px;
+            padding: 0 10px;
         }
 
         .choice-btn {
-            background: linear-gradient(135deg, #3498db, #2980b9);
+            background: #4a90e2;
             color: white;
-            border: none;
-            border-radius: 15px;
-            padding: 15px 20px;
+            border: 4px solid white;
+            border-radius: 8px;
+            padding: 18px 12px;
             font-size: 16px;
             font-weight: bold;
             cursor: pointer;
-            transition: all 0.3s ease;
+            transition: all 0.2s ease;
             position: relative;
             overflow: hidden;
-        }
-
-        .choice-btn::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-            transition: left 0.6s ease;
+            min-height: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            box-shadow: 
+                0 0 0 2px #2c5aa0,
+                0 4px 8px rgba(0,0,0,0.3);
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
         }
 
         .choice-btn:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 20px rgba(52, 152, 219, 0.4);
-        }
-
-        .choice-btn:hover::before {
-            left: 100%;
+            background: #357abd;
+            transform: translateY(-1px);
+            box-shadow: 
+                0 0 0 2px #1e3d72,
+                0 6px 12px rgba(0,0,0,0.4);
         }
 
         .choice-btn:active {
-            transform: translateY(-1px);
+            transform: translateY(1px);
+            box-shadow: 
+                0 0 0 2px #2c5aa0,
+                0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        /* 古典RPG風の角丸を少し抑える */
+        .choice-btn {
+            border-radius: 4px;
         }
 
         @media (max-width: 768px) {
@@ -517,14 +539,36 @@
 
             .battle-area {
                 padding: 20px;
+                margin: 10px;
+            }
+
+            .problem-area {
+                padding: 20px;
+            }
+
+            .enemy-word {
+                font-size: 32px;
+                letter-spacing: 2px;
             }
 
             .problem-text {
-                font-size: 20px;
+                font-size: 16px;
             }
 
             .choices-container {
-                grid-template-columns: 1fr;
+                gap: 10px;
+                padding: 0 5px;
+            }
+
+            .choice-btn {
+                padding: 15px 10px;
+                font-size: 14px;
+                min-height: 60px;
+                border-width: 3px;
+            }
+
+            .game-footer {
+                padding: 15px;
             }
         }
 
@@ -545,17 +589,42 @@
 
             .battle-area {
                 padding: 15px;
-                margin: 15px;
+                margin: 5px;
+            }
+
+            .problem-area {
+                padding: 15px;
             }
 
             .enemy-sprite {
-                width: 80px;
-                height: 80px;
-                font-size: 32px;
+                width: 70px;
+                height: 70px;
+                font-size: 28px;
+            }
+
+            .enemy-word {
+                font-size: 28px;
+                letter-spacing: 1px;
+                margin: 15px 0;
             }
 
             .problem-text {
-                font-size: 18px;
+                font-size: 14px;
+            }
+
+            .problem-hint {
+                font-size: 14px;
+            }
+
+            .choice-btn {
+                padding: 12px 8px;
+                font-size: 13px;
+                min-height: 55px;
+                border-width: 3px;
+            }
+
+            .choices-container {
+                gap: 8px;
             }
         }
     </style>
@@ -643,8 +712,11 @@
                 </div>
                 
                 <div class="problem-area">
-                    <div class="problem-text">この英語の意味は？</div>
-                    <div class="problem-hint">単語: <strong id="wordDisplay">APPLE</strong></div>
+                    <div class="problem-text">敵が現れた！この英語を倒せ！</div>
+                    <div class="enemy-word" id="wordDisplay">APPLE</div>
+                    <div class="problem-hint" style="font-size: 14px; color: #bdc3c7; text-align: center;">
+                        意味はどれ？
+                    </div>
                 </div>
             </div>
         </main>
