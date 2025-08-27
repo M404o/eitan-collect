@@ -348,6 +348,27 @@
             justify-content: space-between;
         }
 
+        .controls-area {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .difficulty-selector {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .difficulty-selector:focus {
+            outline: none;
+            background: rgba(255, 255, 255, 0.2);
+        }
+
         .logout-btn {
             background: rgba(255, 255, 255, 0.2);
             border: none;
@@ -676,7 +697,7 @@
             </div>
             
             <div class="version-info">
-                Ver 1.0.0 - 基本学習は完全無料
+                Ver 2.0.0 - 新レベルシステム統合版
             </div>
         </div>
     </div>
@@ -690,10 +711,10 @@
                     <div class="player-details">
                         <h2 id="playerName">ユウタ</h2>
                         <div class="level-info">
-                            レベル <span id="playerLevel">5</span> • <span id="wordsLearned">23</span>単語習得
+                            レベル <span id="playerLevel">5</span> • <span id="totalCorrectAnswers">23</span>問正解
                         </div>
                         <div class="stage-info">
-                            ステージ: <span id="currentStage">森の入り口</span> (<span id="stageProgress">3/5</span>)
+                            ステージ: <span id="currentStage">1-1</span> (<span id="stageProgress">3/5</span>)
                         </div>
                     </div>
                 </div>
@@ -709,15 +730,22 @@
                     </div>
                     <div>
                         <div class="stat-label">
-                            <span>経験値</span>
-                            <span><span id="currentExp">320</span>/<span id="nextLevelExp">500</span></span>
+                            <span>次のレベルまで</span>
+                            <span><span id="toNextLevel">7</span>問</span>
                         </div>
                         <div class="stat-bar">
                             <div class="stat-fill exp-fill" style="width: 64%"></div>
                         </div>
                     </div>
                 </div>
-                <button id="logoutBtn" class="logout-btn">ログアウト</button>
+                <div class="controls-area">
+                    <select id="difficultySelector" class="difficulty-selector">
+                        <option value="1">かんたん</option>
+                        <option value="2">ふつう</option>
+                        <option value="3">むずかしい</option>
+                    </select>
+                    <button id="logoutBtn" class="logout-btn">ログアウト</button>
+                </div>
             </div>
         </header>
 
@@ -748,7 +776,61 @@
     </div>
 
     <script>
-        // アカウント管理システム
+        // レベルシステム（小学生にやさしい間隔）
+        class NewLevelSystem {
+            static getLevelRequirements() {
+                return [
+                    { level: 1, requiredCorrect: 0, title: "初心者" },
+                    { level: 2, requiredCorrect: 5, title: "見習い冒険者" },
+                    { level: 3, requiredCorrect: 12, title: "冒険者" },
+                    { level: 4, requiredCorrect: 20, title: "熟練冒険者" },
+                    { level: 5, requiredCorrect: 30, title: "上級冒険者" },
+                    { level: 6, requiredCorrect: 42, title: "エキスパート" },
+                    { level: 7, requiredCorrect: 56, title: "マスター" },
+                    { level: 8, requiredCorrect: 72, title: "グランドマスター" },
+                    { level: 9, requiredCorrect: 90, title: "レジェンド" },
+                    { level: 10, requiredCorrect: 110, title: "英語の神" }
+                ];
+            }
+            
+            static getCurrentLevel(totalCorrectAnswers) {
+                const requirements = this.getLevelRequirements();
+                let currentLevel = 1;
+                
+                for (let i = requirements.length - 1; i >= 0; i--) {
+                    if (totalCorrectAnswers >= requirements[i].requiredCorrect) {
+                        currentLevel = requirements[i].level;
+                        break;
+                    }
+                }
+                
+                return currentLevel;
+            }
+            
+            static getNextLevelInfo(totalCorrectAnswers) {
+                const requirements = this.getLevelRequirements();
+                const currentLevel = this.getCurrentLevel(totalCorrectAnswers);
+                
+                for (let i = 0; i < requirements.length; i++) {
+                    if (requirements[i].level > currentLevel) {
+                        return {
+                            nextLevel: requirements[i].level,
+                            required: requirements[i].requiredCorrect,
+                            remaining: requirements[i].requiredCorrect - totalCorrectAnswers
+                        };
+                    }
+                }
+                
+                return null; // 最高レベル到達
+            }
+            
+            static getLevelTitle(level) {
+                const req = this.getLevelRequirements().find(r => r.level === level);
+                return req ? req.title : "冒険者";
+            }
+        }
+
+        // アカウント管理システム 
         class AccountManager {
             static STORAGE_KEY = 'rpg_english_accounts';
             
@@ -766,18 +848,17 @@
                 } else {
                     accounts.push({
                         name: accountData.name,
-                        level: 1,
                         hp: 50,
                         maxHp: 50,
-                        exp: 0,
-                        expToNext: 100,
-                        totalWordsLearned: 0,
+                        totalCorrectAnswers: 0, // 新レベルシステムのベース
+                        totalQuestionsAnswered: 0, // 経験値的な要素
+                        currentStage: "1-1",
                         stageProgress: {
-                            currentStage: 1,
-                            correctCount: 0
+                            correct: 0,
+                            total: 0,
+                            needed: 5 // 最初は5問
                         },
                         selectedDifficulty: 1,
-                        unlockedLevels: [1, 2],
                         createdAt: new Date().toISOString(),
                         lastPlayed: new Date().toISOString(),
                         ...accountData
@@ -800,58 +881,43 @@
         // ステージ管理システム
         class StageManager {
             constructor() {
-                this.stages = [
-                    { id: 1, name: "森の入り口", questionsNeeded: 5, unlockLevel: 1, reward: "common" },
-                    { id: 2, name: "小川のほとり", questionsNeeded: 7, unlockLevel: 2, reward: "rare" },
-                    { id: 3, name: "古い橋", questionsNeeded: 8, unlockLevel: 3, reward: "epic" },
-                    { id: 4, name: "魔法の森", questionsNeeded: 10, unlockLevel: 4, reward: "legendary" },
-                    { id: 5, name: "賢者の塔", questionsNeeded: 12, unlockLevel: 5, reward: "legendary" }
-                ];
-            }
-            
-            getCurrentStage(stageProgress) {
-                return stageProgress.currentStage || 1;
+                this.stageConfig = {
+                    "1-1": { name: "森の入り口", questions: 5, difficulty: [1] },
+                    "1-2": { name: "小さな小屋", questions: 5, difficulty: [1] },
+                    "1-3": { name: "森の小道", questions: 6, difficulty: [1] },
+                    "1-4": { name: "木陰の休憩所", questions: 6, difficulty: [1] },
+                    "1-5": { name: "森の出口", questions: 7, difficulty: [1, 2] },
+                    "2-1": { name: "草原の入り口", questions: 6, difficulty: [2] },
+                    "2-2": { name: "花畑", questions: 7, difficulty: [2] },
+                    "2-3": { name: "小川のほとり", questions: 8, difficulty: [2] },
+                    "2-4": { name: "古い橋", questions: 8, difficulty: [2] },
+                    "2-5": { name: "草原の丘", questions: 9, difficulty: [2, 3] },
+                    "3-1": { name: "山の麓", questions: 8, difficulty: [3] },
+                    "3-2": { name: "石の道", questions: 9, difficulty: [3] },
+                    "3-3": { name: "山小屋", questions: 10, difficulty: [3] },
+                    "3-4": { name: "山頂への道", questions: 10, difficulty: [3] },
+                    "3-5": { name: "山頂の神殿", questions: 12, difficulty: [3] }
+                };
             }
             
             getStageInfo(stageId) {
-                return this.stages.find(s => s.id === stageId) || this.stages[0];
+                return this.stageConfig[stageId] || this.stageConfig["1-1"];
             }
             
-            checkStageComplete(stageProgress) {
-                const currentStage = this.getStageInfo(stageProgress.currentStage || 1);
-                return stageProgress.correctCount >= currentStage.questionsNeeded;
+            getNextStage(currentStage) {
+                const stages = Object.keys(this.stageConfig);
+                const currentIndex = stages.indexOf(currentStage);
+                return currentIndex >= 0 && currentIndex < stages.length - 1 
+                    ? stages[currentIndex + 1] 
+                    : null;
             }
             
-            completeStage(gameManager) {
-                const stageProgress = gameManager.gameData.stageProgress;
-                const completedStageInfo = this.getStageInfo(stageProgress.currentStage);
-                
-                // 次のステージに進む
-                stageProgress.currentStage++;
-                stageProgress.correctCount = 0;
-                
-                // 問題レベルを解放
-                if (!gameManager.gameData.unlockedLevels) {
-                    gameManager.gameData.unlockedLevels = [1, 2];
-                }
-                
-                const newLevel = completedStageInfo.unlockLevel + 1;
-                if (newLevel <= 5 && !gameManager.gameData.unlockedLevels.includes(newLevel)) {
-                    gameManager.gameData.unlockedLevels.push(newLevel);
-                }
-                
-                // ステージクリア報酬（大量経験値）
-                gameManager.gameData.exp += 100;
-                
-                return {
-                    stageName: completedStageInfo.name,
-                    unlockedLevel: newLevel,
-                    expBonus: 100
-                };
+            isStageComplete(stageProgress, stageInfo) {
+                return stageProgress.correct >= stageInfo.questions;
             }
         }
 
-        // 問題管理システム
+        // 問題管理システム 
         class QuestionManager {
             constructor() {
                 this.questions = [
@@ -859,8 +925,8 @@
                     { word: 'cat', japanese: 'ねこ', choices: ['🐱 ねこ', '🐶 いぬ', '🐰 うさぎ', '🐹 ハムスター'], correct: 0, level: 1 },
                     { word: 'dog', japanese: 'いぬ', choices: ['🐱 ねこ', '🐶 いぬ', '🐰 うさぎ', '🐧 ペンギン'], correct: 1, level: 1 },
                     { word: 'apple', japanese: 'りんご', choices: ['🍎 りんご', '🍌 バナナ', '🍊 オレンジ', '🍇 ぶどう'], correct: 0, level: 1 },
-                    { word: 'book', japanese: 'ほん', choices: ['📚 ほん', '✏️ えんぴつ', '📝 かみ', '🖥️ コンピューター'], correct: 0, level: 1 },
-                    { word: 'pen', japanese: 'ペン', choices: ['📚 ほん', '✏️ ペン', '📝 かみ', '✂️ はさみ'], correct: 1, level: 1 },
+                    { word: 'book', japanese: 'ほん', choices: ['📚 ほん', '✏️ えんぴつ', '📄 かみ', '🖥️ コンピューター'], correct: 0, level: 1 },
+                    { word: 'pen', japanese: 'ペン', choices: ['📚 ほん', '✏️ ペン', '📄 かみ', '✂️ はさみ'], correct: 1, level: 1 },
                     
                     // レベル2: 色・数字
                     { word: 'red', japanese: 'あか', choices: ['🔴 あか', '🔵 あお', '🟢 みどり', '🟡 きいろ'], correct: 0, level: 2 },
@@ -878,32 +944,19 @@
                 ];
                 
                 this.currentQuestionIndex = 0;
-                this.availableQuestions = this.questions.filter(q => q.level <= 2); // 最初はレベル1-2のみ
             }
             
-            updateAvailableQuestions(selectedDifficulty) {
-                // ステージクリア時のみ問題レベルを上げる（プレイヤーレベルは無関係）
-                this.availableQuestions = this.questions.filter(q => q.level <= selectedDifficulty);
+            getAvailableQuestions(selectedDifficulty) {
+                return this.questions.filter(q => q.level <= selectedDifficulty);
             }
             
-            getCurrentQuestion() {
-                if (this.availableQuestions.length === 0) {
-                    return this.questions[0]; // フォールバック
-                }
-                return this.availableQuestions[this.currentQuestionIndex % this.availableQuestions.length];
-            }
-            
-            nextQuestion() {
-                this.currentQuestionIndex++;
-                return this.getCurrentQuestion();
-            }
-            
-            getRandomQuestion() {
-                if (this.availableQuestions.length === 0) {
+            getRandomQuestion(selectedDifficulty) {
+                const availableQuestions = this.getAvailableQuestions(selectedDifficulty);
+                if (availableQuestions.length === 0) {
                     return this.questions[0];
                 }
-                const randomIndex = Math.floor(Math.random() * this.availableQuestions.length);
-                return this.availableQuestions[randomIndex];
+                const randomIndex = Math.floor(Math.random() * availableQuestions.length);
+                return availableQuestions[randomIndex];
             }
         }
 
@@ -925,21 +978,20 @@
                 const accounts = JSON.parse(localStorage.getItem('rpg_english_accounts') || '[]');
                 const userData = accounts.find(acc => acc.name === this.currentUser);
                 
-                // デフォルトデータ
+                // デフォルトデータ（新レベルシステム対応）
                 return userData || {
                     name: this.currentUser,
-                    level: 1,
                     hp: 50,
                     maxHp: 50,
-                    exp: 0,
-                    expToNext: 100,
-                    totalWordsLearned: 0,
+                    totalCorrectAnswers: 0,
+                    totalQuestionsAnswered: 0,
+                    currentStage: "1-1",
                     stageProgress: {
-                        currentStage: 1,
-                        correctCount: 0
+                        correct: 0,
+                        total: 0,
+                        needed: 5
                     },
-                    selectedDifficulty: 1,
-                    unlockedLevels: [1, 2]
+                    selectedDifficulty: 1
                 };
             }
             
@@ -965,140 +1017,37 @@
             
             initializeUI() {
                 document.getElementById('playerName').textContent = this.gameData.name;
-                document.getElementById('playerLevel').textContent = this.gameData.level;
-                document.getElementById('wordsLearned').textContent = this.gameData.totalWordsLearned;
+                
+                // 新レベルシステム適用
+                const currentLevel = NewLevelSystem.getCurrentLevel(this.gameData.totalCorrectAnswers);
+                const nextLevelInfo = NewLevelSystem.getNextLevelInfo(this.gameData.totalCorrectAnswers);
+                
+                document.getElementById('playerLevel').textContent = currentLevel;
+                document.getElementById('totalCorrectAnswers').textContent = this.gameData.totalCorrectAnswers;
                 document.getElementById('currentHP').textContent = this.gameData.hp;
                 document.getElementById('maxHP').textContent = this.gameData.maxHp;
-                document.getElementById('currentExp').textContent = this.gameData.exp;
-                document.getElementById('nextLevelExp').textContent = this.gameData.expToNext;
                 
-                // ステージ情報の更新（既存データ対応）
-                if (!this.gameData.stageProgress) {
-                    this.gameData.stageProgress = {
-                        currentStage: 1,
-                        correctCount: 0
-                    };
-                }
-                if (!this.gameData.selectedDifficulty) {
-                    this.gameData.selectedDifficulty = 1;
-                }
-                if (!this.gameData.unlockedLevels) {
-                    this.gameData.unlockedLevels = [1, 2];
+                if (nextLevelInfo) {
+                    document.getElementById('toNextLevel').textContent = nextLevelInfo.remaining;
+                    const progressPercent = ((nextLevelInfo.required - nextLevelInfo.remaining) / nextLevelInfo.required) * 100;
+                    document.querySelector('.exp-fill').style.width = progressPercent + '%';
+                } else {
+                    document.getElementById('toNextLevel').textContent = '最高レベル';
+                    document.querySelector('.exp-fill').style.width = '100%';
                 }
                 
-                const currentStageId = this.gameData.stageProgress.currentStage;
-                const stageInfo = this.stageManager.getStageInfo(currentStageId);
-                const progress = this.gameData.stageProgress.correctCount;
+                // ステージ情報の更新
+                const stageInfo = this.stageManager.getStageInfo(this.gameData.currentStage);
+                document.getElementById('currentStage').textContent = this.gameData.currentStage;
+                document.getElementById('stageProgress').textContent = 
+                    `${this.gameData.stageProgress.correct}/${stageInfo.questions}`;
                 
-                document.getElementById('currentStage').textContent = stageInfo.name;
-                document.getElementById('stageProgress').textContent = `${progress}/${stageInfo.questionsNeeded}`;
+                // 難易度選択の設定
+                document.getElementById('difficultySelector').value = this.gameData.selectedDifficulty;
                 
                 // HPバー
                 const hpPercent = (this.gameData.hp / this.gameData.maxHp) * 100;
                 document.querySelector('.hp-fill').style.width = hpPercent + '%';
-                
-                // 経験値バー
-                const expPercent = (this.gameData.exp / this.gameData.expToNext) * 100;
-                document.querySelector('.exp-fill').style.width = expPercent + '%';
-            }
-        }
-
-        // レベルアップ演出
-        class LevelUpEffect {
-            static show(newLevel) {
-                // レベルアップモーダル作成
-                const modal = document.createElement('div');
-                modal.style.cssText = `
-                    position: fixed;
-                    top: 0;
-                    left: 0;
-                    right: 0;
-                    bottom: 0;
-                    background: rgba(0, 0, 0, 0.8);
-                    z-index: 1000;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    animation: fadeIn 0.3s ease;
-                `;
-                
-                const content = document.createElement('div');
-                content.style.cssText = `
-                    background: linear-gradient(135deg, #f39c12, #e67e22);
-                    border-radius: 20px;
-                    padding: 40px;
-                    text-align: center;
-                    color: white;
-                    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
-                    animation: levelUpBounce 0.6s ease;
-                    max-width: 90vw;
-                `;
-                
-                content.innerHTML = `
-                    <div style="font-size: 48px; margin-bottom: 20px; animation: sparkle 1s ease infinite;">✨</div>
-                    <h2 style="font-size: 32px; margin-bottom: 15px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">
-                        レベルアップ！
-                    </h2>
-                    <div style="font-size: 24px; font-weight: bold; margin-bottom: 20px;">
-                        レベル ${newLevel}
-                    </div>
-                    <div style="font-size: 16px; margin-bottom: 25px; opacity: 0.9;">
-                        HPが全回復しました！<br>
-                        より難しい問題に挑戦できるようになりました！
-                    </div>
-                    <button id="levelUpOk" style="
-                        background: linear-gradient(135deg, #27ae60, #2ecc71);
-                        color: white;
-                        border: none;
-                        border-radius: 12px;
-                        padding: 12px 30px;
-                        font-size: 16px;
-                        font-weight: bold;
-                        cursor: pointer;
-                        transition: transform 0.2s;
-                    ">冒険を続ける</button>
-                `;
-                
-                // アニメーション追加
-                const style = document.createElement('style');
-                style.textContent = `
-                    @keyframes fadeIn {
-                        from { opacity: 0; }
-                        to { opacity: 1; }
-                    }
-                    @keyframes levelUpBounce {
-                        0% { transform: scale(0.8) translateY(20px); opacity: 0; }
-                        50% { transform: scale(1.05) translateY(-5px); }
-                        100% { transform: scale(1) translateY(0); opacity: 1; }
-                    }
-                    @keyframes sparkle {
-                        0%, 100% { transform: rotate(0deg) scale(1); }
-                        25% { transform: rotate(90deg) scale(1.1); }
-                        50% { transform: rotate(180deg) scale(1); }
-                        75% { transform: rotate(270deg) scale(1.1); }
-                    }
-                `;
-                document.head.appendChild(style);
-                
-                modal.appendChild(content);
-                document.body.appendChild(modal);
-                
-                // OKボタンで閉じる
-                document.getElementById('levelUpOk').onclick = () => {
-                    modal.style.animation = 'fadeOut 0.3s ease';
-                    setTimeout(() => {
-                        document.body.removeChild(modal);
-                        document.head.removeChild(style);
-                    }, 300);
-                };
-                
-                // フェードアウト用CSS追加
-                style.textContent += `
-                    @keyframes fadeOut {
-                        from { opacity: 1; }
-                        to { opacity: 0; }
-                    }
-                `;
             }
         }
 
@@ -1111,7 +1060,6 @@
                 }
                 
                 let currentReviewIndex = 0;
-                const reviewedAnswers = new Set();
                 
                 const modal = document.createElement('div');
                 modal.style.cssText = `
@@ -1173,12 +1121,10 @@
                             </div>
                         `;
                     
-                    // 正解ボタンをクリックしたら次へ
                     setTimeout(() => {
                         const correctBtn = document.getElementById('correctAnswerBtn');
                         correctBtn.onclick = () => {
                             correctBtn.style.transform = 'scale(0.95)';
-                            reviewedAnswers.add(currentReviewIndex);
                             
                             setTimeout(() => {
                                 currentReviewIndex++;
@@ -1255,7 +1201,7 @@
                     max-width: 90vw;
                 `;
                 
-                const wordsLearned = gameManager.gameData.totalWordsLearned;
+                const correctAnswers = gameManager.gameData.totalCorrectAnswers;
                 const wrongCount = gameManager.wrongAnswers.length;
                 
                 content.innerHTML = `
@@ -1265,7 +1211,7 @@
                     </h2>
                     <div style="font-size: 18px; margin-bottom: 20px; opacity: 0.9;">
                         でも大丈夫！<br>
-                        ${wordsLearned}個の単語を覚えました！
+                        ${correctAnswers}問正解できました！
                     </div>
                     ${wrongCount > 0 ? `
                         <div style="background: rgba(0,0,0,0.3); border-radius: 12px; padding: 15px; margin: 20px 0;">
@@ -1324,6 +1270,10 @@
                         50% { transform: scale(0.95) rotate(-1deg); }
                         100% { transform: scale(1) rotate(0deg); opacity: 1; }
                     }
+                    @keyframes fadeIn {
+                        from { opacity: 0; }
+                        to { opacity: 1; }
+                    }
                 `;
                 document.head.appendChild(style);
                 
@@ -1366,6 +1316,94 @@
                 };
             }
         }
+        class LevelUpEffect {
+            static show(newLevel, levelTitle) {
+                const modal = document.createElement('div');
+                modal.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    background: rgba(0, 0, 0, 0.8);
+                    z-index: 1000;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    animation: fadeIn 0.3s ease;
+                `;
+                
+                const content = document.createElement('div');
+                content.style.cssText = `
+                    background: linear-gradient(135deg, #f39c12, #e67e22);
+                    border-radius: 20px;
+                    padding: 40px;
+                    text-align: center;
+                    color: white;
+                    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+                    animation: levelUpBounce 0.6s ease;
+                    max-width: 90vw;
+                `;
+                
+                content.innerHTML = `
+                    <div style="font-size: 48px; margin-bottom: 20px; animation: sparkle 1s ease infinite;">✨</div>
+                    <h2 style="font-size: 32px; margin-bottom: 15px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">
+                        レベルアップ！
+                    </h2>
+                    <div style="font-size: 24px; font-weight: bold; margin-bottom: 20px;">
+                        レベル ${newLevel} - ${levelTitle}
+                    </div>
+                    <div style="font-size: 16px; margin-bottom: 25px; opacity: 0.9;">
+                        HPが全回復しました！<br>
+                        おめでとうございます！
+                    </div>
+                    <button id="levelUpOk" style="
+                        background: linear-gradient(135deg, #27ae60, #2ecc71);
+                        color: white;
+                        border: none;
+                        border-radius: 12px;
+                        padding: 12px 30px;
+                        font-size: 16px;
+                        font-weight: bold;
+                        cursor: pointer;
+                        transition: transform 0.2s;
+                    ">冒険を続ける</button>
+                `;
+                
+                // アニメーション追加
+                const style = document.createElement('style');
+                style.textContent = `
+                    @keyframes fadeIn {
+                        from { opacity: 0; }
+                        to { opacity: 1; }
+                    }
+                    @keyframes levelUpBounce {
+                        0% { transform: scale(0.8) translateY(20px); opacity: 0; }
+                        50% { transform: scale(1.05) translateY(-5px); }
+                        100% { transform: scale(1) translateY(0); opacity: 1; }
+                    }
+                    @keyframes sparkle {
+                        0%, 100% { transform: rotate(0deg) scale(1); }
+                        25% { transform: rotate(90deg) scale(1.1); }
+                        50% { transform: rotate(180deg) scale(1); }
+                        75% { transform: rotate(270deg) scale(1.1); }
+                    }
+                `;
+                document.head.appendChild(style);
+                
+                modal.appendChild(content);
+                document.body.appendChild(modal);
+                
+                // OKボタンで閉じる
+                document.getElementById('levelUpOk').onclick = () => {
+                    modal.style.animation = 'fadeOut 0.3s ease';
+                    setTimeout(() => {
+                        document.body.removeChild(modal);
+                        document.head.removeChild(style);
+                    }, 300);
+                };
+            }
+        }
 
         // ログイン画面UI管理
         class LoginUI {
@@ -1405,27 +1443,30 @@
                 
                 this.emptyState.style.display = 'none';
                 
-                this.accountsList.innerHTML = accounts.map(account => `
-                    <div class="account-card" onclick="loginUI.selectAccount('${account.name}')">
-                        <div class="account-info">
-                            <div class="account-main">
-                                <div class="account-avatar">${this.getAvatarEmoji(account.level)}</div>
-                                <div class="account-details">
-                                    <div class="account-name">${account.name}</div>
-                                    <div class="account-level">Lv.${account.level} • ${account.totalWordsLearned}単語習得</div>
+                this.accountsList.innerHTML = accounts.map(account => {
+                    const currentLevel = NewLevelSystem.getCurrentLevel(account.totalCorrectAnswers || 0);
+                    return `
+                        <div class="account-card" onclick="loginUI.selectAccount('${account.name}')">
+                            <div class="account-info">
+                                <div class="account-main">
+                                    <div class="account-avatar">${this.getAvatarEmoji(currentLevel)}</div>
+                                    <div class="account-details">
+                                        <div class="account-name">${account.name}</div>
+                                        <div class="account-level">Lv.${currentLevel} • ${account.totalCorrectAnswers || 0}問正解</div>
+                                    </div>
                                 </div>
+                                <button class="delete-btn" onclick="event.stopPropagation(); loginUI.deleteAccount('${account.name}')" title="削除">×</button>
                             </div>
-                            <button class="delete-btn" onclick="event.stopPropagation(); loginUI.deleteAccount('${account.name}')" title="削除">×</button>
                         </div>
-                    </div>
-                `).join('');
+                    `;
+                }).join('');
             }
             
             getAvatarEmoji(level) {
-                if (level < 5) return '🥺';
-                if (level < 10) return '😊';
-                if (level < 20) return '😎';
-                if (level < 30) return '🤩';
+                if (level < 3) return '🥺';
+                if (level < 5) return '😊';
+                if (level < 7) return '😎';
+                if (level < 9) return '🤩';
                 return '👑';
             }
             
@@ -1509,15 +1550,12 @@
             window.gameManager = new GameManager();
             window.questionManager = new QuestionManager();
             
-            // 選択された難易度に応じて問題範囲を更新
-            window.questionManager.updateAvailableQuestions(window.gameManager.gameData.selectedDifficulty);
-            
             // 初期問題を表示
-            window.currentQuestion = window.questionManager.getRandomQuestion();
+            window.currentQuestion = window.questionManager.getRandomQuestion(window.gameManager.gameData.selectedDifficulty);
             document.getElementById('wordDisplay').textContent = window.currentQuestion.word;
             document.querySelectorAll('.choice-btn').forEach((btn, i) => {
                 btn.textContent = window.currentQuestion.choices[i];
-                btn.style.background = 'linear-gradient(135deg, #3498db, #2980b9)';
+                btn.style.background = '#4a90e2';
             });
 
             // ゲームイベントの設定
@@ -1528,6 +1566,20 @@
         function setupGameEvents() {
             // ログアウトボタン
             document.getElementById('logoutBtn').onclick = showLoginScreen;
+
+            // 難易度変更
+            document.getElementById('difficultySelector').addEventListener('change', (e) => {
+                window.gameManager.gameData.selectedDifficulty = parseInt(e.target.value);
+                window.gameManager.saveGameData();
+                
+                // 新しい問題を表示
+                window.currentQuestion = window.questionManager.getRandomQuestion(window.gameManager.gameData.selectedDifficulty);
+                document.getElementById('wordDisplay').textContent = window.currentQuestion.word;
+                document.querySelectorAll('.choice-btn').forEach((btn, i) => {
+                    btn.textContent = window.currentQuestion.choices[i];
+                    btn.style.background = '#4a90e2';
+                });
+            });
 
             // 選択肢ボタンのイベント設定
             document.querySelectorAll('.choice-btn').forEach((btn, index) => {
@@ -1540,96 +1592,72 @@
                 btn.addEventListener('click', () => {
                     const isCorrect = index === window.currentQuestion.correct;
                     
+                    // 問題に答えた数をカウント
+                    window.gameManager.gameData.totalQuestionsAnswered++;
+                    
                     if (isCorrect) {
                         btn.style.background = 'linear-gradient(135deg, #27ae60, #2ecc71)';
                         
-                        // 敵を倒すアニメーション演出
-                        const wordElement = document.getElementById('wordDisplay');
-                        const problemArea = document.querySelector('.problem-area');
-                        
-                        wordElement.classList.add('word-defeated');
-                        
-                        // 勝利メッセージを表示
-                        setTimeout(() => {
-                            const victoryMsg = document.createElement('div');
-                            victoryMsg.className = 'victory-message';
-                            victoryMsg.textContent = '敵を倒した！';
-                            problemArea.style.position = 'relative';
-                            problemArea.appendChild(victoryMsg);
-                            
-                            // 勝利メッセージを1秒後に削除
-                            setTimeout(() => {
-                                if (victoryMsg.parentNode) {
-                                    victoryMsg.parentNode.removeChild(victoryMsg);
-                                }
-                            }, 1000);
-                        }, 800);
+                        // 正解数を増やす（新レベルシステムのベース）
+                        window.gameManager.gameData.totalCorrectAnswers++;
                         
                         // ステージ進行度を増やす
-                        window.gameManager.gameData.stageProgress.correctCount++;
+                        window.gameManager.gameData.stageProgress.correct++;
                         
-                        // 経験値獲得
-                        window.gameManager.gameData.exp += 50;
-                        window.gameManager.gameData.totalWordsLearned += 1;
+                        // レベルアップチェック（新システム）
+                        const oldLevel = NewLevelSystem.getCurrentLevel(window.gameManager.gameData.totalCorrectAnswers - 1);
+                        const newLevel = NewLevelSystem.getCurrentLevel(window.gameManager.gameData.totalCorrectAnswers);
                         
-                        // ステージクリアチェック
-                        const isStageComplete = window.gameManager.stageManager.checkStageComplete(window.gameManager.gameData.stageProgress);
-                        
-                        // レベルアップチェック
-                        if (window.gameManager.gameData.exp >= window.gameManager.gameData.expToNext) {
-                            window.gameManager.gameData.level += 1;
-                            window.gameManager.gameData.exp -= window.gameManager.gameData.expToNext;
-                            window.gameManager.gameData.expToNext = window.gameManager.gameData.expToNext + 50;
+                        if (newLevel > oldLevel) {
+                            // レベルアップ！HP全回復
                             window.gameManager.gameData.maxHp += 10;
                             window.gameManager.gameData.hp = window.gameManager.gameData.maxHp;
                             
                             window.gameManager.saveGameData();
                             window.gameManager.initializeUI();
                             
-                            if (isStageComplete) {
-                                const stageReward = window.gameManager.stageManager.completeStage(window.gameManager);
-                                window.gameManager.saveGameData();
-                                window.gameManager.initializeUI();
+                            setTimeout(() => {
+                                const levelTitle = NewLevelSystem.getLevelTitle(newLevel);
+                                LevelUpEffect.show(newLevel, levelTitle);
+                            }, 2200);
+                        }
+                        
+                        // ステージクリアチェック
+                        const stageInfo = window.gameManager.stageManager.getStageInfo(window.gameManager.gameData.currentStage);
+                        if (window.gameManager.stageManager.isStageComplete(window.gameManager.gameData.stageProgress, stageInfo)) {
+                            const nextStage = window.gameManager.stageManager.getNextStage(window.gameManager.gameData.currentStage);
+                            
+                            if (nextStage) {
+                                window.gameManager.gameData.currentStage = nextStage;
+                                window.gameManager.gameData.stageProgress = {
+                                    correct: 0,
+                                    total: 0,
+                                    needed: window.gameManager.stageManager.getStageInfo(nextStage).questions
+                                };
                                 
                                 setTimeout(() => {
-                                    alert(`ステージクリア！\n${stageReward.stageName}\n問題レベル${stageReward.unlockedLevel}が解放されました！`);
-                                    LevelUpEffect.show(window.gameManager.gameData.level);
-                                }, 2200);
+                                    alert(`ステージクリア！\n次のステージ「${nextStage}」に進みます！`);
+                                }, 1500);
                             } else {
                                 setTimeout(() => {
-                                    LevelUpEffect.show(window.gameManager.gameData.level);
-                                }, 2200);
-                            }
-                        } else {
-                            window.gameManager.saveGameData();
-                            window.gameManager.initializeUI();
-                            
-                            if (isStageComplete) {
-                                const stageReward = window.gameManager.stageManager.completeStage(window.gameManager);
-                                window.gameManager.saveGameData();
-                                window.gameManager.initializeUI();
-                                
-                                setTimeout(() => {
-                                    alert(`ステージクリア！\n${stageReward.stageName}\n問題レベル${stageReward.unlockedLevel}が解放されました！`);
-                                }, 2200);
+                                    alert('全ステージクリア！\nおめでとうございます！');
+                                }, 1500);
                             }
                         }
                         
+                        window.gameManager.saveGameData();
+                        window.gameManager.initializeUI();
+                        
                         // 次の問題を表示（アニメーション完了後）
                         setTimeout(() => {
-                            // アニメーションクラスを削除してリセット
-                            wordElement.classList.remove('word-defeated');
-                            wordElement.style.opacity = '1';
-                            wordElement.style.transform = 'scale(1) rotate(0deg)';
-                            
-                            window.currentQuestion = window.questionManager.getRandomQuestion();
+                            window.currentQuestion = window.questionManager.getRandomQuestion(window.gameManager.gameData.selectedDifficulty);
                             document.getElementById('wordDisplay').textContent = window.currentQuestion.word;
                             
                             document.querySelectorAll('.choice-btn').forEach((choiceBtn, i) => {
                                 choiceBtn.textContent = window.currentQuestion.choices[i];
                                 choiceBtn.style.background = '#4a90e2';
                             });
-                        }, isStageComplete ? 4000 : 2500);
+                        }, 2500);
                         
                     } else {
                         btn.style.background = 'linear-gradient(135deg, #e74c3c, #c0392b)';
@@ -1649,7 +1677,7 @@
                             }, 1500);
                         } else {
                             setTimeout(() => {
-                                btn.style.background = 'linear-gradient(135deg, #3498db, #2980b9)';
+                                btn.style.background = '#4a90e2';
                             }, 1000);
                         }
                     }
@@ -1664,9 +1692,9 @@
             
             // 最初はログイン画面を表示
             showLoginScreen();
+            
+            console.log('新しいレベルシステム統合版を読み込みました');
         });
-
-        console.log('統合版アプリが読み込まれました');
     </script>
 </body>
 </html>
