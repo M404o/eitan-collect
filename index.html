@@ -876,25 +876,45 @@
             }
         }
 
-        // ステージ管理システム
+        // ステージ管理システム（30ステージに拡張）
         class StageManager {
             constructor() {
                 this.stageConfig = {
+                    // レベル1エリア: 森の冒険 (1-1 ~ 1-10)
                     "1-1": { name: "森の入り口", questions: 5, difficulty: [1] },
                     "1-2": { name: "小さな小屋", questions: 5, difficulty: [1] },
-                    "1-3": { name: "森の小道", questions: 6, difficulty: [1] },
+                    "1-3": { name: "森の小道", questions: 5, difficulty: [1] },
                     "1-4": { name: "木陰の休憩所", questions: 6, difficulty: [1] },
-                    "1-5": { name: "森の出口", questions: 7, difficulty: [1, 2] },
+                    "1-5": { name: "森の泉", questions: 6, difficulty: [1] },
+                    "1-6": { name: "きのこの森", questions: 6, difficulty: [1] },
+                    "1-7": { name: "森の奥", questions: 7, difficulty: [1] },
+                    "1-8": { name: "古い切り株", questions: 7, difficulty: [1] },
+                    "1-9": { name: "森の番人", questions: 8, difficulty: [1] },
+                    "1-10": { name: "森の出口", questions: 8, difficulty: [1, 2] },
+                    
+                    // レベル2エリア: 草原の旅 (2-1 ~ 2-10)
                     "2-1": { name: "草原の入り口", questions: 6, difficulty: [2] },
-                    "2-2": { name: "花畑", questions: 7, difficulty: [2] },
-                    "2-3": { name: "小川のほとり", questions: 8, difficulty: [2] },
-                    "2-4": { name: "古い橋", questions: 8, difficulty: [2] },
-                    "2-5": { name: "草原の丘", questions: 9, difficulty: [2, 3] },
-                    "3-1": { name: "山の麓", questions: 8, difficulty: [3] },
-                    "3-2": { name: "石の道", questions: 9, difficulty: [3] },
-                    "3-3": { name: "山小屋", questions: 10, difficulty: [3] },
-                    "3-4": { name: "山頂への道", questions: 10, difficulty: [3] },
-                    "3-5": { name: "山頂の神殿", questions: 12, difficulty: [3] }
+                    "2-2": { name: "花畑", questions: 6, difficulty: [2] },
+                    "2-3": { name: "小川のほとり", questions: 7, difficulty: [2] },
+                    "2-4": { name: "石の橋", questions: 7, difficulty: [2] },
+                    "2-5": { name: "風車小屋", questions: 7, difficulty: [2] },
+                    "2-6": { name: "羊の牧場", questions: 8, difficulty: [2] },
+                    "2-7": { name: "虹の丘", questions: 8, difficulty: [2] },
+                    "2-8": { name: "草原の村", questions: 8, difficulty: [2] },
+                    "2-9": { name: "賢者の家", questions: 9, difficulty: [2] },
+                    "2-10": { name: "草原の丘", questions: 9, difficulty: [2, 3] },
+                    
+                    // レベル3エリア: 山の挑戦 (3-1 ~ 3-10)
+                    "3-1": { name: "山の麓", questions: 7, difficulty: [3] },
+                    "3-2": { name: "石の道", questions: 8, difficulty: [3] },
+                    "3-3": { name: "山小屋", questions: 8, difficulty: [3] },
+                    "3-4": { name: "雲の上", questions: 9, difficulty: [3] },
+                    "3-5": { name: "山の洞窟", questions: 9, difficulty: [3] },
+                    "3-6": { name: "滝の裏", questions: 10, difficulty: [3] },
+                    "3-7": { name: "山頂への道", questions: 10, difficulty: [3] },
+                    "3-8": { name: "竜の巣", questions: 11, difficulty: [3] },
+                    "3-9": { name: "魔法の神殿", questions: 12, difficulty: [3] },
+                    "3-10": { name: "山頂の王座", questions: 12, difficulty: [3] }
                 };
             }
             
