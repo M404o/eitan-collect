@@ -538,82 +538,33 @@
             }
 
             .battle-area {
-                padding: 20px;
-                margin: 10px;
-            }
-
-            .problem-area {
-                padding: 20px;
-            }
-
-            .enemy-word {
-                font-size: 32px;
-                letter-spacing: 2px;
-            }
-
-            .problem-text {
-                font-size: 16px;
-            }
-
-            .choices-container {
-                gap: 10px;
-                padding: 0 5px;
-            }
-
-            .choice-btn {
-                padding: 15px 10px;
-                font-size: 14px;
-                min-height: 60px;
-                border-width: 3px;
-            }
-
-            .game-footer {
-                padding: 15px;
-            }
-        }
-
-        @media (max-width: 480px) {
-            .game-header {
-                padding: 12px 15px;
-            }
-
-            .player-game-avatar {
-                width: 40px;
-                height: 40px;
-                font-size: 20px;
-            }
-
-            .player-details h2 {
-                font-size: 16px;
-            }
-
-            .battle-area {
                 padding: 15px;
                 margin: 5px;
+                max-width: 90vw;
             }
 
             .problem-area {
                 padding: 15px;
-            }
-
-            .enemy-sprite {
-                width: 70px;
-                height: 70px;
-                font-size: 28px;
+                margin-bottom: 20px;
             }
 
             .enemy-word {
                 font-size: 28px;
                 letter-spacing: 1px;
-                margin: 15px 0;
+                margin: 12px 0;
             }
 
             .problem-text {
-                font-size: 14px;
+                font-size: 15px;
             }
 
             .problem-hint {
                 font-size: 14px;
+            }
+
+            .choices-container {
+                gap: 8px;
+                max-width: 100%;
             }
 
             .choice-btn {
@@ -623,8 +574,73 @@
                 border-width: 3px;
             }
 
+            .game-footer {
+                padding: 12px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .game-header {
+                padding: 10px 12px;
+            }
+
+            .player-game-avatar {
+                width: 35px;
+                height: 35px;
+                font-size: 18px;
+            }
+
+            .player-details h2 {
+                font-size: 14px;
+            }
+
+            .level-info, .stage-info {
+                font-size: 10px;
+            }
+
+            .battle-area {
+                padding: 12px;
+                margin: 2px;
+            }
+
+            .problem-area {
+                padding: 12px;
+                margin-bottom: 15px;
+            }
+
+            .enemy-sprite {
+                width: 60px;
+                height: 60px;
+                font-size: 24px;
+            }
+
+            .enemy-word {
+                font-size: 24px;
+                letter-spacing: 0px;
+                margin: 10px 0;
+            }
+
+            .problem-text {
+                font-size: 13px;
+            }
+
+            .problem-hint {
+                font-size: 12px;
+            }
+
+            .choice-btn {
+                padding: 10px 6px;
+                font-size: 12px;
+                min-height: 50px;
+                border-width: 2px;
+            }
+
             .choices-container {
-                gap: 8px;
+                gap: 6px;
+            }
+
+            .game-footer {
+                padding: 10px;
             }
         }
     </style>
@@ -866,8 +882,17 @@
             }
             
             updateAvailableQuestions(selectedDifficulty) {
-                // 選択された難易度レベル以下の問題のみ出題
-                this.availableQuestions = this.questions.filter(q => q.level <= selectedDifficulty);
+                // プレイヤーレベルに基づいて動的に難易度を上げる
+                const playerLevel = selectedDifficulty;
+                let maxLevel = 1;
+                
+                if (playerLevel >= 3) maxLevel = 2;
+                if (playerLevel >= 5) maxLevel = 3;
+                if (playerLevel >= 8) maxLevel = 4;
+                if (playerLevel >= 12) maxLevel = 5;
+                
+                this.availableQuestions = this.questions.filter(q => q.level <= maxLevel);
+                console.log(`プレイヤーレベル${playerLevel} → 問題レベル1-${maxLevel}を解放`);
             }
             
             getCurrentQuestion() {
@@ -1527,12 +1552,19 @@
                     if (isCorrect) {
                         btn.style.background = 'linear-gradient(135deg, #27ae60, #2ecc71)';
                         
+                        // 正解アニメーション演出
+                        const wordElement = document.getElementById('wordDisplay');
+                        wordElement.classList.add('word-correct');
+                        
                         // ステージ進行度を増やす
                         window.gameManager.gameData.stageProgress.correctCount++;
                         
-                        // 経験値獲得（大幅増量）
+                        // 経験値獲得
                         window.gameManager.gameData.exp += 50;
                         window.gameManager.gameData.totalWordsLearned += 1;
+                        
+                        // プレイヤーレベルに基づいて問題難易度を動的更新
+                        window.questionManager.updateAvailableQuestions(window.gameManager.gameData.level);
                         
                         // ステージクリアチェック
                         const isStageComplete = window.gameManager.stageManager.checkStageComplete(window.gameManager.gameData.stageProgress);
@@ -1554,7 +1586,7 @@
                                 window.gameManager.initializeUI();
                                 
                                 setTimeout(() => {
-                                    alert(`🎉 ステージクリア！\n${stageReward.stageName}\n問題レベル${stageReward.unlockedLevel}が解放されました！`);
+                                    alert(`ステージクリア！\n${stageReward.stageName}\n問題レベル${stageReward.unlockedLevel}が解放されました！`);
                                     LevelUpEffect.show(window.gameManager.gameData.level);
                                 }, 1200);
                             } else {
@@ -1579,12 +1611,15 @@
                         
                         // 次の問題を表示
                         setTimeout(() => {
+                            // アニメーションクラスを削除
+                            wordElement.classList.remove('word-correct');
+                            
                             window.currentQuestion = window.questionManager.getRandomQuestion();
                             document.getElementById('wordDisplay').textContent = window.currentQuestion.word;
                             
                             document.querySelectorAll('.choice-btn').forEach((choiceBtn, i) => {
                                 choiceBtn.textContent = window.currentQuestion.choices[i];
-                                choiceBtn.style.background = 'linear-gradient(135deg, #3498db, #2980b9)';
+                                choiceBtn.style.background = 'linear-gradient(135deg, #4a90e2, #357abd)';
                             });
                         }, isStageComplete ? 3000 : 1500);
                         
