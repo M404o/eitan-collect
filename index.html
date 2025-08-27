@@ -850,13 +850,11 @@
                         name: accountData.name,
                         hp: 50,
                         maxHp: 50,
-                        totalCorrectAnswers: 0, // 新レベルシステムのベース
-                        totalQuestionsAnswered: 0, // 経験値的な要素
+                        totalCorrectAnswers: 0,
                         currentStage: "1-1",
                         stageProgress: {
                             correct: 0,
-                            total: 0,
-                            needed: 5 // 最初は5問
+                            needed: 5
                         },
                         selectedDifficulty: 1,
                         createdAt: new Date().toISOString(),
@@ -917,7 +915,7 @@
             }
         }
 
-        // 問題管理システム 
+        // 問題管理システム（問題数大幅増加版）
         class QuestionManager {
             constructor() {
                 this.questions = [
@@ -927,20 +925,50 @@
                     { word: 'apple', japanese: 'りんご', choices: ['🍎 りんご', '🍌 バナナ', '🍊 オレンジ', '🍇 ぶどう'], correct: 0, level: 1 },
                     { word: 'book', japanese: 'ほん', choices: ['📚 ほん', '✏️ えんぴつ', '📄 かみ', '🖥️ コンピューター'], correct: 0, level: 1 },
                     { word: 'pen', japanese: 'ペン', choices: ['📚 ほん', '✏️ ペン', '📄 かみ', '✂️ はさみ'], correct: 1, level: 1 },
+                    { word: 'car', japanese: 'くるま', choices: ['🚗 くるま', '🚲 じてんしゃ', '🚌 バス', '✈️ ひこうき'], correct: 0, level: 1 },
+                    { word: 'house', japanese: 'いえ', choices: ['🏠 いえ', '🏫 がっこう', '🏥 びょういん', '🏪 みせ'], correct: 0, level: 1 },
+                    { word: 'water', japanese: 'みず', choices: ['💧 みず', '🥛 みるく', '☕ コーヒー', '🧃 ジュース'], correct: 0, level: 1 },
+                    { word: 'sun', japanese: 'たいよう', choices: ['☀️ たいよう', '🌙 つき', '⭐ ほし', '☁️ くも'], correct: 0, level: 1 },
+                    { word: 'fish', japanese: 'さかな', choices: ['🐟 さかな', '🐱 ねこ', '🐶 いぬ', '🐰 うさぎ'], correct: 0, level: 1 },
+                    { word: 'bird', japanese: 'とり', choices: ['🐦 とり', '🐱 ねこ', '🐟 さかな', '🐸 かえる'], correct: 0, level: 1 },
+                    { word: 'tree', japanese: 'き', choices: ['🌳 き', '🌸 はな', '🍎 りんご', '🌱 め'], correct: 0, level: 1 },
+                    { word: 'flower', japanese: 'はな', choices: ['🌺 はな', '🌳 き', '🍎 りんご', '🌱 め'], correct: 0, level: 1 },
+                    { word: 'ball', japanese: 'ボール', choices: ['⚽ ボール', '📚 ほん', '✏️ ペン', '🎒 かばん'], correct: 0, level: 1 },
+                    { word: 'milk', japanese: 'みるく', choices: ['🥛 みるく', '💧 みず', '☕ コーヒー', '🧃 ジュース'], correct: 0, level: 1 },
                     
-                    // レベル2: 色・数字
+                    // レベル2: 色・数字・形容詞
                     { word: 'red', japanese: 'あか', choices: ['🔴 あか', '🔵 あお', '🟢 みどり', '🟡 きいろ'], correct: 0, level: 2 },
                     { word: 'blue', japanese: 'あお', choices: ['🔴 あか', '🔵 あお', '🟢 みどり', '🟡 きいろ'], correct: 1, level: 2 },
+                    { word: 'green', japanese: 'みどり', choices: ['🔴 あか', '🔵 あお', '🟢 みどり', '🟡 きいろ'], correct: 2, level: 2 },
+                    { word: 'yellow', japanese: 'きいろ', choices: ['🔴 あか', '🔵 あお', '🟢 みどり', '🟡 きいろ'], correct: 3, level: 2 },
+                    { word: 'black', japanese: 'くろ', choices: ['⚫ くろ', '⚪ しろ', '🔴 あか', '🟤 ちゃいろ'], correct: 0, level: 2 },
+                    { word: 'white', japanese: 'しろ', choices: ['⚫ くろ', '⚪ しろ', '🔴 あか', '🟤 ちゃいろ'], correct: 1, level: 2 },
                     { word: 'one', japanese: 'いち', choices: ['1️⃣ いち', '2️⃣ に', '3️⃣ さん', '4️⃣ よん'], correct: 0, level: 2 },
                     { word: 'two', japanese: 'に', choices: ['1️⃣ いち', '2️⃣ に', '3️⃣ さん', '4️⃣ よん'], correct: 1, level: 2 },
+                    { word: 'three', japanese: 'さん', choices: ['1️⃣ いち', '2️⃣ に', '3️⃣ さん', '4️⃣ よん'], correct: 2, level: 2 },
+                    { word: 'four', japanese: 'よん', choices: ['1️⃣ いち', '2️⃣ に', '3️⃣ さん', '4️⃣ よん'], correct: 3, level: 2 },
+                    { word: 'five', japanese: 'ご', choices: ['5️⃣ ご', '6️⃣ ろく', '7️⃣ なな', '8️⃣ はち'], correct: 0, level: 2 },
                     { word: 'big', japanese: 'おおきい', choices: ['📏 おおきい', '🤏 ちいさい', '⚡ はやい', '🐌 おそい'], correct: 0, level: 2 },
+                    { word: 'small', japanese: 'ちいさい', choices: ['📏 おおきい', '🤏 ちいさい', '⚡ はやい', '🐌 おそい'], correct: 1, level: 2 },
+                    { word: 'hot', japanese: 'あつい', choices: ['🔥 あつい', '❄️ つめたい', '💧 みず', '☀️ たいよう'], correct: 0, level: 2 },
+                    { word: 'cold', japanese: 'つめたい', choices: ['🔥 あつい', '❄️ つめたい', '💧 みず', '☀️ たいよう'], correct: 1, level: 2 },
                     
-                    // レベル3: 家族・体
+                    // レベル3: 家族・体・食べ物
                     { word: 'mother', japanese: 'おかあさん', choices: ['👩 おかあさん', '👨 おとうさん', '👧 いもうと', '👦 おとうと'], correct: 0, level: 3 },
                     { word: 'father', japanese: 'おとうさん', choices: ['👩 おかあさん', '👨 おとうさん', '👧 いもうと', '👦 おとうと'], correct: 1, level: 3 },
+                    { word: 'sister', japanese: 'あね・いもうと', choices: ['👩 おかあさん', '👧 あね・いもうと', '👦 あに・おとうと', '👴 おじいさん'], correct: 1, level: 3 },
+                    { word: 'brother', japanese: 'あに・おとうと', choices: ['👩 おかあさん', '👧 あね・いもうと', '👦 あに・おとうと', '👴 おじいさん'], correct: 2, level: 3 },
                     { word: 'hand', japanese: 'て', choices: ['👁️ め', '👂 みみ', '✋ て', '🦵 あし'], correct: 2, level: 3 },
                     { word: 'eye', japanese: 'め', choices: ['👁️ め', '👂 みみ', '✋ て', '🦵 あし'], correct: 0, level: 3 },
                     { word: 'head', japanese: 'あたま', choices: ['👁️ め', '🤚 て', '🧠 あたま', '🦵 あし'], correct: 2, level: 3 },
+                    { word: 'ear', japanese: 'みみ', choices: ['👁️ め', '👂 みみ', '✋ て', '👃 はな'], correct: 1, level: 3 },
+                    { word: 'nose', japanese: 'はな', choices: ['👁️ め', '👂 みみ', '✋ て', '👃 はな'], correct: 3, level: 3 },
+                    { word: 'mouth', japanese: 'くち', choices: ['👁️ め', '👂 みみ', '👄 くち', '👃 はな'], correct: 2, level: 3 },
+                    { word: 'bread', japanese: 'パン', choices: ['🍞 パン', '🍎 りんご', '🥛 みるく', '🧃 ジュース'], correct: 0, level: 3 },
+                    { word: 'rice', japanese: 'ごはん', choices: ['🍞 パン', '🍚 ごはん', '🍝 パスタ', '🍕 ピザ'], correct: 1, level: 3 },
+                    { word: 'meat', japanese: 'にく', choices: ['🥩 にく', '🐟 さかな', '🍞 パン', '🥬 やさい'], correct: 0, level: 3 },
+                    { word: 'egg', japanese: 'たまご', choices: ['🥚 たまご', '🥛 みるく', '🍞 パン', '🧀 チーズ'], correct: 0, level: 3 },
+                    { word: 'banana', japanese: 'バナナ', choices: ['🍎 りんご', '🍌 バナナ', '🍊 オレンジ', '🍇 ぶどう'], correct: 1, level: 3 }
                 ];
                 
                 this.currentQuestionIndex = 0;
@@ -960,12 +988,12 @@
             }
         }
 
-        // ゲームデータの管理
+        // ゲームデータの管理（簡潔版）
         class GameManager {
             constructor() {
                 this.currentUser = this.getCurrentUser();
                 this.gameData = this.loadGameData();
-                this.wrongAnswers = []; // 間違えた問題を記録
+                this.wrongAnswers = [];
                 this.stageManager = new StageManager();
                 this.initializeUI();
             }
@@ -978,21 +1006,37 @@
                 const accounts = JSON.parse(localStorage.getItem('rpg_english_accounts') || '[]');
                 const userData = accounts.find(acc => acc.name === this.currentUser);
                 
-                // デフォルトデータ（新レベルシステム対応）
-                return userData || {
+                // デフォルトデータ
+                const defaultData = {
                     name: this.currentUser,
                     hp: 50,
                     maxHp: 50,
                     totalCorrectAnswers: 0,
-                    totalQuestionsAnswered: 0,
                     currentStage: "1-1",
                     stageProgress: {
                         correct: 0,
-                        total: 0,
                         needed: 5
                     },
                     selectedDifficulty: 1
                 };
+                
+                if (!userData) {
+                    return defaultData;
+                }
+                
+                // 既存データに不足している項目を補完
+                const completeData = { ...defaultData, ...userData };
+                
+                // stageProgressの修正（既存データ対応）
+                if (!completeData.stageProgress || typeof completeData.stageProgress.needed === 'undefined') {
+                    const stageInfo = this.stageManager ? this.stageManager.getStageInfo(completeData.currentStage) : { questions: 5 };
+                    completeData.stageProgress = {
+                        correct: completeData.stageProgress?.correct || 0,
+                        needed: stageInfo.questions
+                    };
+                }
+                
+                return completeData;
             }
             
             saveGameData() {
@@ -1009,7 +1053,6 @@
             }
             
             addWrongAnswer(question) {
-                // 同じ問題は重複して記録しない
                 if (!this.wrongAnswers.find(q => q.word === question.word)) {
                     this.wrongAnswers.push(question);
                 }
@@ -1018,7 +1061,7 @@
             initializeUI() {
                 document.getElementById('playerName').textContent = this.gameData.name;
                 
-                // 新レベルシステム適用
+                // レベル情報の更新
                 const currentLevel = NewLevelSystem.getCurrentLevel(this.gameData.totalCorrectAnswers);
                 const nextLevelInfo = NewLevelSystem.getNextLevelInfo(this.gameData.totalCorrectAnswers);
                 
@@ -1298,22 +1341,29 @@
                 }
                 
                 // すぐ再開ボタン
-                document.getElementById('restartBtn').onclick = () => {
-                    // HPを半分回復して再開
-                    gameManager.gameData.hp = Math.floor(gameManager.gameData.maxHp / 2);
-                    gameManager.wrongAnswers = []; // 間違い記録をリセット
-                    gameManager.saveGameData();
-                    gameManager.initializeUI();
-                    
-                    document.body.removeChild(modal);
-                    document.head.removeChild(style);
-                };
+                const restartBtn = document.getElementById('restartBtn');
+                if (restartBtn) {
+                    restartBtn.onclick = () => {
+                        // HPを半分回復して再開
+                        gameManager.gameData.hp = Math.floor(gameManager.gameData.maxHp / 2);
+                        gameManager.wrongAnswers = []; // 間違い記録をリセット
+                        gameManager.saveGameData();
+                        gameManager.initializeUI();
+                        
+                        document.body.removeChild(modal);
+                        document.head.removeChild(style);
+                    };
+                }
                 
-                document.getElementById('backToLoginBtn').onclick = () => {
-                    showLoginScreen();
-                    document.body.removeChild(modal);
-                    document.head.removeChild(style);
-                };
+                // メニューに戻るボタン
+                const backToLoginBtn = document.getElementById('backToLoginBtn');
+                if (backToLoginBtn) {
+                    backToLoginBtn.onclick = () => {
+                        showLoginScreen();
+                        document.body.removeChild(modal);
+                        document.head.removeChild(style);
+                    };
+                }
             }
         }
         class LevelUpEffect {
@@ -1592,19 +1642,16 @@
                 btn.addEventListener('click', () => {
                     const isCorrect = index === window.currentQuestion.correct;
                     
-                    // 問題に答えた数をカウント
-                    window.gameManager.gameData.totalQuestionsAnswered++;
-                    
                     if (isCorrect) {
                         btn.style.background = 'linear-gradient(135deg, #27ae60, #2ecc71)';
                         
-                        // 正解数を増やす（新レベルシステムのベース）
+                        // 正解数を増やす
                         window.gameManager.gameData.totalCorrectAnswers++;
                         
                         // ステージ進行度を増やす
                         window.gameManager.gameData.stageProgress.correct++;
                         
-                        // レベルアップチェック（新システム）
+                        // レベルアップチェック
                         const oldLevel = NewLevelSystem.getCurrentLevel(window.gameManager.gameData.totalCorrectAnswers - 1);
                         const newLevel = NewLevelSystem.getCurrentLevel(window.gameManager.gameData.totalCorrectAnswers);
                         
@@ -1624,19 +1671,21 @@
                         
                         // ステージクリアチェック
                         const stageInfo = window.gameManager.stageManager.getStageInfo(window.gameManager.gameData.currentStage);
-                        if (window.gameManager.stageManager.isStageComplete(window.gameManager.gameData.stageProgress, stageInfo)) {
+                        
+                        if (window.gameManager.gameData.stageProgress.correct >= stageInfo.questions) {
                             const nextStage = window.gameManager.stageManager.getNextStage(window.gameManager.gameData.currentStage);
                             
                             if (nextStage) {
                                 window.gameManager.gameData.currentStage = nextStage;
+                                const nextStageInfo = window.gameManager.stageManager.getStageInfo(nextStage);
                                 window.gameManager.gameData.stageProgress = {
                                     correct: 0,
                                     total: 0,
-                                    needed: window.gameManager.stageManager.getStageInfo(nextStage).questions
+                                    needed: nextStageInfo.questions
                                 };
                                 
                                 setTimeout(() => {
-                                    alert(`ステージクリア！\n次のステージ「${nextStage}」に進みます！`);
+                                    alert(`ステージクリア！\n「${stageInfo.name}」クリア！\n次のステージ「${nextStageInfo.name}」に進みます！`);
                                 }, 1500);
                             } else {
                                 setTimeout(() => {
