@@ -882,17 +882,8 @@
             }
             
             updateAvailableQuestions(selectedDifficulty) {
-                // プレイヤーレベルに基づいて動的に難易度を上げる
-                const playerLevel = selectedDifficulty;
-                let maxLevel = 1;
-                
-                if (playerLevel >= 3) maxLevel = 2;
-                if (playerLevel >= 5) maxLevel = 3;
-                if (playerLevel >= 8) maxLevel = 4;
-                if (playerLevel >= 12) maxLevel = 5;
-                
-                this.availableQuestions = this.questions.filter(q => q.level <= maxLevel);
-                console.log(`プレイヤーレベル${playerLevel} → 問題レベル1-${maxLevel}を解放`);
+                // ステージクリア時のみ問題レベルを上げる（プレイヤーレベルは無関係）
+                this.availableQuestions = this.questions.filter(q => q.level <= selectedDifficulty);
             }
             
             getCurrentQuestion() {
@@ -1552,9 +1543,27 @@
                     if (isCorrect) {
                         btn.style.background = 'linear-gradient(135deg, #27ae60, #2ecc71)';
                         
-                        // 正解アニメーション演出
+                        // 敵を倒すアニメーション演出
                         const wordElement = document.getElementById('wordDisplay');
-                        wordElement.classList.add('word-correct');
+                        const problemArea = document.querySelector('.problem-area');
+                        
+                        wordElement.classList.add('word-defeated');
+                        
+                        // 勝利メッセージを表示
+                        setTimeout(() => {
+                            const victoryMsg = document.createElement('div');
+                            victoryMsg.className = 'victory-message';
+                            victoryMsg.textContent = '敵を倒した！';
+                            problemArea.style.position = 'relative';
+                            problemArea.appendChild(victoryMsg);
+                            
+                            // 勝利メッセージを1秒後に削除
+                            setTimeout(() => {
+                                if (victoryMsg.parentNode) {
+                                    victoryMsg.parentNode.removeChild(victoryMsg);
+                                }
+                            }, 1000);
+                        }, 800);
                         
                         // ステージ進行度を増やす
                         window.gameManager.gameData.stageProgress.correctCount++;
@@ -1562,9 +1571,6 @@
                         // 経験値獲得
                         window.gameManager.gameData.exp += 50;
                         window.gameManager.gameData.totalWordsLearned += 1;
-                        
-                        // プレイヤーレベルに基づいて問題難易度を動的更新
-                        window.questionManager.updateAvailableQuestions(window.gameManager.gameData.level);
                         
                         // ステージクリアチェック
                         const isStageComplete = window.gameManager.stageManager.checkStageComplete(window.gameManager.gameData.stageProgress);
@@ -1588,11 +1594,11 @@
                                 setTimeout(() => {
                                     alert(`ステージクリア！\n${stageReward.stageName}\n問題レベル${stageReward.unlockedLevel}が解放されました！`);
                                     LevelUpEffect.show(window.gameManager.gameData.level);
-                                }, 1200);
+                                }, 2200);
                             } else {
                                 setTimeout(() => {
                                     LevelUpEffect.show(window.gameManager.gameData.level);
-                                }, 1200);
+                                }, 2200);
                             }
                         } else {
                             window.gameManager.saveGameData();
@@ -1605,23 +1611,25 @@
                                 
                                 setTimeout(() => {
                                     alert(`ステージクリア！\n${stageReward.stageName}\n問題レベル${stageReward.unlockedLevel}が解放されました！`);
-                                }, 1200);
+                                }, 2200);
                             }
                         }
                         
-                        // 次の問題を表示
+                        // 次の問題を表示（アニメーション完了後）
                         setTimeout(() => {
-                            // アニメーションクラスを削除
-                            wordElement.classList.remove('word-correct');
+                            // アニメーションクラスを削除してリセット
+                            wordElement.classList.remove('word-defeated');
+                            wordElement.style.opacity = '1';
+                            wordElement.style.transform = 'scale(1) rotate(0deg)';
                             
                             window.currentQuestion = window.questionManager.getRandomQuestion();
                             document.getElementById('wordDisplay').textContent = window.currentQuestion.word;
                             
                             document.querySelectorAll('.choice-btn').forEach((choiceBtn, i) => {
                                 choiceBtn.textContent = window.currentQuestion.choices[i];
-                                choiceBtn.style.background = 'linear-gradient(135deg, #4a90e2, #357abd)';
+                                choiceBtn.style.background = '#4a90e2';
                             });
-                        }, isStageComplete ? 3000 : 1500);
+                        }, isStageComplete ? 4000 : 2500);
                         
                     } else {
                         btn.style.background = 'linear-gradient(135deg, #e74c3c, #c0392b)';
